@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Telehealth Dashboard
+
+A full-stack telehealth patient dashboard built with Next.js, Three.js, Drizzle ORM, and Neon Postgres.
+
+## Features
+
+-  **3D Interactive Body Map** — click any body part to log a symptom, powered by Three.js raycasting
+-  **Persistent Symptom Logging** — symptoms save to Postgres via Drizzle ORM and server actions
+-  **Visit History** — view past and upcoming appointments
+-  **Prescriptions** — view active and expired prescriptions
+-  **Multi-tenant Architecture** — each clinic gets an isolated URL and data (`/[orgId]/dashboard`)
+
+## Tech Stack
+
+- **Framework** — Next.js 15 (App Router)
+- **Language** — TypeScript
+- **3D Rendering** — Three.js
+- **ORM** — Drizzle ORM
+- **Database** — Neon (serverless Postgres)
+- **Styling** — Tailwind CSS
+
+
+## Architecture
+```
+app/
+  [orgId]/
+    dashboard/
+      page.tsx          ← server component, fetches all data
+      layout.tsx        ← server component, renders nav
+      dashboard-client.tsx  ← client component, handles interactivity
+components/
+  body-viewer.tsx       ← Three.js 3D body map
+  symptom-modal.tsx     ← log symptom modal
+  symptom-log.tsx       ← symptom list with delete
+  nav.tsx               ← top navigation
+lib/
+  db/
+    schema.ts           ← Drizzle table definitions
+    index.ts            ← database client
+  actions/
+    symptoms.ts         ← server actions (log, fetch, delete)
+```
 
 ## Getting Started
 
-First, run the development server:
-
+1. Clone the repo
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/yourusername/telehealth-dashboard.git
+cd telehealth-dashboard
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up environment variables
+```bash
+cp .env.example .env.local
+```
+Add your Neon database URL:
+```
+DATABASE_URL=postgresql://...
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Run migrations
+```bash
+npx dotenv-cli -e .env.local -- npx drizzle-kit generate
+npx dotenv-cli -e .env.local -- npx drizzle-kit migrate
+```
 
-## Learn More
+5. Seed the database
+```sql
+INSERT INTO patients (org_id, name, email, phone)
+VALUES ('health-demo', 'Alex Rivera', 'alex@example.com', '555-0100');
 
-To learn more about Next.js, take a look at the following resources:
+INSERT INTO appointments (org_id, patient_id, provider, scheduled_at, status)
+VALUES ('health-demo', 1, 'Dr. Sarah Chen', '2026-03-20 14:00:00', 'upcoming');
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+INSERT INTO prescriptions (org_id, patient_id, medication, dosage, frequency, prescribed_by, status)
+VALUES 
+  ('health-demo', 1, 'Lisinopril', '10mg', 'Once daily', 'Dr. Sarah Chen', 'active'),
+  ('health-demo', 1, 'Metformin', '500mg', 'Twice daily', 'Dr. Sarah Chen', 'active');
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+6. Run the app
+```bash
+npm run dev
+```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open [http://localhost:3000/health-demo/dashboard](http://localhost:3000/health-demo/dashboard)
