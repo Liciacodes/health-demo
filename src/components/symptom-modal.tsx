@@ -118,7 +118,7 @@ const existing = existingSymptoms.find(s => s.bodyPart === part?.id && s.id < 20
           <button
             onClick={handleSave}
             disabled={loading}
-            className="flex-[2] py-3 rounded-lg bg-blue-600 text-white font-semibold text-sm cursor-pointer border-none"
+            className="flex-2 py-3 rounded-lg bg-blue-600 text-white font-semibold text-sm cursor-pointer border-none"
           >
             {loading
               ? "Saving..."

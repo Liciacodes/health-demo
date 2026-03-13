@@ -72,7 +72,6 @@ export function BodyViewer({ onPartClick, activePartIds }: BodyViewerProps) {
     scene.add(rim);
 
     // ── BUILD MESHES ──────────────────────────
-    // Mesh = Geometry (shape) + Material (appearance)
     BODY_PARTS.forEach((part) => {
       const geo  = new THREE.BoxGeometry(part.w, part.h, part.d);
       const mat  = new THREE.MeshStandardMaterial({
@@ -84,14 +83,13 @@ export function BodyViewer({ onPartClick, activePartIds }: BodyViewerProps) {
       });
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(part.x, part.y, part.z);
-      mesh.userData = { id: part.id };   // attach part id to mesh
+      mesh.userData = { id: part.id };   
       scene.add(mesh);
       meshMapRef.current[part.id] = mesh;
     });
 
     // ── RAYCASTING ────────────────────────────
     // Shoots a ray from camera through mouse coords,
-    // returns any meshes it hits — that's your click detection
     const raycaster = new THREE.Raycaster();
     const mouse     = new THREE.Vector2();
 
@@ -140,14 +138,15 @@ export function BodyViewer({ onPartClick, activePartIds }: BodyViewerProps) {
     container.addEventListener("click",     onClick);
 
     // ── ANIMATION LOOP ────────────────────────
-    // requestAnimationFrame re-runs before every browser repaint
+    
     let frameId: number;
     let t = 0;
     function animate() {
       frameId = requestAnimationFrame(animate);
       t += 0.008;
-      scene.rotation.y = Math.sin(t * 0.3) * 0.12;
+      scene.rotation.y = Math.sin(t * 0.3) * 0.2;
       scene.position.y = Math.sin(t * 0.5) * 0.03;
+      console.log("rotating", t, scene.rotation.y);
       renderer.render(scene, camera);
     }
     animate();
@@ -157,13 +156,13 @@ export function BodyViewer({ onPartClick, activePartIds }: BodyViewerProps) {
       const w = container.clientWidth;
       const h = container.clientHeight;
       camera.aspect = w / h;
-      camera.updateProjectionMatrix(); // must call after changing aspect
+      camera.updateProjectionMatrix(); 
       renderer.setSize(w, h);
     }
     window.addEventListener("resize", onResize);
 
     // ── CLEANUP ───────────────────────────────
-    // Always clean up — React strict mode mounts twice
+    
     return () => {
       cancelAnimationFrame(frameId);
       container.removeEventListener("mousemove", onMove);
