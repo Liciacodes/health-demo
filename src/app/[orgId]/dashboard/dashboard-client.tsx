@@ -4,8 +4,13 @@ import { useState } from "react";
 import { BodyViewer } from "@/components/body-viewer";
 import { SymptomModal } from "@/components/symptom-modal";
 import { SymptomLog } from "@/components/symptom-log";
-import { logSymptom } from "@/lib/actions/symptoms";
-import type { Appointment, Patient, Prescription, Symptom } from "@/lib/db/schema";
+import { getSymptomsForPatient, logSymptom } from "@/lib/actions/symptoms";
+import type {
+  Appointment,
+  Patient,
+  Prescription,
+  Symptom,
+} from "@/lib/db/schema";
 import type { BodyPart } from "@/components/body-viewer";
 
 type Props = {
@@ -14,7 +19,7 @@ type Props = {
   initialSymptoms: Symptom[];
   nextAppointment: { scheduledAt: Date; provider: string } | null;
   visitHistory: Appointment[];
-  prescriptions: Prescription[]
+  prescriptions: Prescription[];
 };
 
 const NAV_ITEMS = [
@@ -40,32 +45,30 @@ export function DashboardClient({
   const activePartIds = [...new Set(symptoms.map((s) => s.bodyPart))];
 
   async function handleSaveSymptom(data: {
-    bodyPart: string;
-    note: string;
-    severity: number;
-  }) {
-    // 1. Optimistic update — show immediately in the UI
+  bodyPart:  string;
+  note:      string;
+  severity:  number;
+  id?:       number;
+  isUpdate?: boolean;
+}) {
+  if (data.isUpdate && data.id) {
+    // update in state
+    setSymptoms(prev => prev.map(s =>
+      s.id === data.id ? { ...s, note: data.note, severity: data.severity } : s
+    ));
+  } else {
     const optimistic: Symptom = {
-      id: Date.now(),
+      id:        Date.now(),
       orgId,
       patientId: patient.id,
-      bodyPart: data.bodyPart,
-      note: data.note,
-      severity: data.severity,
+      bodyPart:  data.bodyPart,
+      note:      data.note,
+      severity:  data.severity,
       createdAt: new Date(),
     };
-    setSymptoms((prev) => [optimistic, ...prev]);
-
-    // 2. Persist to DB via server action
-    // revalidatePath inside the action will refresh server data in background
-    await logSymptom({
-      orgId,
-      patientId: patient.id,
-      bodyPart: data.bodyPart,
-      note: data.note,
-      severity: data.severity,
-    });
+    setSymptoms(prev => [optimistic, ...prev]);;
   }
+}
 
   function handleDeleteSymptom(id: number) {
     setSymptoms((prev) => prev.filter((s) => s.id !== id));
@@ -148,11 +151,14 @@ export function DashboardClient({
               : "Coming soon in full implementation"}
           </p> */}
           <p className="text-slate-400 text-sm mt-1 mb-4">
-  {activeTab === "body"    ? "Click any body part to log a symptom" :
-   activeTab === "history" ? "Your past and upcoming appointments" :
-   activeTab === "rx"      ? "Your active prescriptions" :
-   "Your messages with your care team"}
-</p>
+            {activeTab === "body"
+              ? "Click any body part to log a symptom"
+              : activeTab === "history"
+                ? "Your past and upcoming appointments"
+                : activeTab === "rx"
+                  ? "Your active prescriptions"
+                  : "Your messages with your care team"}
+          </p>
         </div>
 
         {activeTab === "body" ? (
@@ -233,50 +239,53 @@ export function DashboardClient({
               )}
             </div>
           </div>
-       ) : activeTab === "rx" ? (
-  <div className="flex-1 overflow-y-auto p-6">
-    <div className="flex flex-col gap-3">
-      {prescriptions.length === 0 ? (
-        <div className="text-slate-500 text-sm">No prescriptions yet</div>
-      ) : (
-        prescriptions.map((rx) => (
-          <div
-            key={rx.id}
-            className="bg-slate-900 border border-slate-800 rounded-xl p-4"
-            style={{
-              borderLeft: `3px solid ${rx.status === "active" ? "#4caf50" : "#64748b"}`
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-white">
-                💊 {rx.medication}
-              </span>
-              <span
-                className="text-xs font-bold px-2 py-0.5 rounded-full capitalize"
-                style={{
-                  background: rx.status === "active" ? "#4caf5033" : "#64748b33",
-                  color:      rx.status === "active" ? "#4caf50"   : "#64748b",
-                }}
-              >
-                {rx.status}
-              </span>
-            </div>
-            <div className="text-xs text-slate-400 mt-1">
-              {rx.dosage} · {rx.frequency}
-            </div>
-            <div className="text-xs text-slate-500 mt-1">
-              Prescribed by {rx.prescribedBy}
+        ) : activeTab === "rx" ? (
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex flex-col gap-3">
+              {prescriptions.length === 0 ? (
+                <div className="text-slate-500 text-sm">
+                  No prescriptions yet
+                </div>
+              ) : (
+                prescriptions.map((rx) => (
+                  <div
+                    key={rx.id}
+                    className="bg-slate-900 border border-slate-800 rounded-xl p-4"
+                    style={{
+                      borderLeft: `3px solid ${rx.status === "active" ? "#4caf50" : "#64748b"}`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-white">
+                        💊 {rx.medication}
+                      </span>
+                      <span
+                        className="text-xs font-bold px-2 py-0.5 rounded-full capitalize"
+                        style={{
+                          background:
+                            rx.status === "active" ? "#4caf5033" : "#64748b33",
+                          color: rx.status === "active" ? "#4caf50" : "#64748b",
+                        }}
+                      >
+                        {rx.status}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      {rx.dosage} · {rx.frequency}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      Prescribed by {rx.prescribedBy}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
-        ))
-      )}
-    </div>
-  </div>
-) : (
-  <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
-    Built with Next.js server components + Drizzle queries
-  </div>
-)}
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
+            Built with Next.js server components + Drizzle queries
+          </div>
+        )}
       </main>
 
       {/* ── RIGHT PANEL ── */}
@@ -295,6 +304,7 @@ export function DashboardClient({
         patientId={patient.id}
         onSave={handleSaveSymptom}
         onClose={() => setSelectedPart(null)}
+        existingSymptoms={symptoms}
       />
     </div>
   );

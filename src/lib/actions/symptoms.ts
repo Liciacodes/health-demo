@@ -37,7 +37,6 @@ export async function logSymptom(data: {
   };
 
   await db.insert(symptoms).values(newSymptom);
-  revalidatePath(`/${data.orgId}/dashboard`);
 }
 
 
@@ -66,4 +65,17 @@ export async function deletesymptom(orgId: string, symptomId: number) {
     )
 
     revalidatePath(`/${orgId}/dashboard`);
+}
+
+export async function updateSymptom(orgId: string, symptomId: number, data: { note?: string; severity?: number }) {
+    await db.update(symptoms)
+    .set({note: data.note, severity: data.severity})
+    .where(
+        and(
+            eq(symptoms.id, symptomId),
+            eq(symptoms.orgId, orgId)
+        )
+    )
+        revalidatePath(`/${orgId}/dashboard`);
+    
 }

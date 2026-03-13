@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import type { BodyPart } from "./body-viewer";
-import { log } from "console";
-import { logSymptom } from "@/lib/actions/symptoms";
+import { logSymptom, updateSymptom } from "@/lib/actions/symptoms";
 
 const SEVERITY = ["", "Mild", "Moderate", "Severe"];
 const SEVERITY_COLORS = ["", "#4caf50", "#ff9800", "#f44336"];
@@ -12,8 +11,20 @@ type Props = {
   part: BodyPart | null;
   orgId: string;
   patientId: number;
-  onSave: (data: { bodyPart: string; note: string; severity: number }) => void;
+  onSave: (data: {
+    bodyPart: string;
+    note: string;
+    severity: number;
+    id?: number;
+    isUpdate?: boolean;
+  }) => void;
   onClose: () => void;
+  existingSymptoms: {
+    bodyPart: string;
+    note: string | null;
+    severity: number;
+    id: number;
+  }[];
 };
 
 export function SymptomModal({
@@ -22,9 +33,12 @@ export function SymptomModal({
   patientId,
   onSave,
   onClose,
+  existingSymptoms,
 }: Props) {
-  const [note, setNote] = useState("");
-  const [severity, setSeverity] = useState(1);
+
+const existing = existingSymptoms.find(s => s.bodyPart === part?.id && s.id < 2000000000);
+  const [note, setNote] = useState(existing?.note ?? "");
+  const [severity, setSeverity] = useState(existing?.severity ?? 1);
   const [loading, setLoading] = useState(false);
 
   if (!part) return null;
@@ -32,14 +46,26 @@ export function SymptomModal({
   async function handleSave() {
     if (!part) return;
     setLoading(true);
-    onSave({ bodyPart: part.id, note, severity });
-    await logSymptom({ orgId, patientId, bodyPart: part.id, note, severity });
+
+    if (existing) {
+      await updateSymptom(orgId, existing.id, { note, severity });
+      onSave({
+        bodyPart: part.id,
+        note,
+        severity,
+        id: existing.id,
+        isUpdate: true,
+      });
+    } else {
+      await logSymptom({ orgId, patientId, bodyPart: part.id, note, severity });
+      onSave({ bodyPart: part.id, note, severity });
+    }
+
     setNote("");
     setSeverity(1);
     setLoading(false);
     onClose();
   }
-
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-slate-900 border border-slate-700 rounded-2xl p-8 w-96 shadow-2xl">
@@ -92,9 +118,13 @@ export function SymptomModal({
           <button
             onClick={handleSave}
             disabled={loading}
-            className="flex-2 py-3 rounded-lg bg-blue-600 text-white font-semibold text-sm cursor-pointer border-none"
+            className="flex-[2] py-3 rounded-lg bg-blue-600 text-white font-semibold text-sm cursor-pointer border-none"
           >
-            {loading ? "Saving..." : "Log Symptom"}
+            {loading
+              ? "Saving..."
+              : existing
+                ? "Update Symptom"
+                : "Log Symptom"}
           </button>
         </div>
       </div>
