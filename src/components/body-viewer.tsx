@@ -146,7 +146,7 @@ export function BodyViewer({ onPartClick, activePartIds }: BodyViewerProps) {
       t += 0.008;
       scene.rotation.y = Math.sin(t * 0.3) * 0.2;
       scene.position.y = Math.sin(t * 0.5) * 0.03;
-      console.log("rotating", t, scene.rotation.y);
+    
       renderer.render(scene, camera);
     }
     animate();
