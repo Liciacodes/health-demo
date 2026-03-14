@@ -4,7 +4,7 @@ import { useState } from "react";
 import { BodyViewer } from "@/components/body-viewer";
 import { SymptomModal } from "@/components/symptom-modal";
 import { SymptomLog } from "@/components/symptom-log";
-import { getSymptomsForPatient, logSymptom } from "@/lib/actions/symptoms";
+import { getSymptomsForPatient,  logSymptom } from "@/lib/actions/symptoms";
 import type { Appointment, Patient, Prescription, Symptom } from "@/lib/db/schema";
 import type { BodyPart } from "@/components/body-viewer";
 
@@ -33,6 +33,7 @@ export function DashboardClient({
   const [showSymptomLog, setShowSymptomLog] = useState(false);
 
   const activePartIds = [...new Set(symptoms.map((s) => s.bodyPart))];
+  const activePartIdsKey = activePartIds.join(",");
 
   async function handleSaveSymptom(data: {
     bodyPart: string; note: string; severity: number; id?: number; isUpdate?: boolean;
@@ -41,14 +42,18 @@ export function DashboardClient({
       setSymptoms(prev => prev.map(s =>
         s.id === data.id ? { ...s, note: data.note, severity: data.severity } : s
       ));
-    } else {
-      const optimistic: Symptom = {
-        id: Date.now(), orgId, patientId: patient.id,
-        bodyPart: data.bodyPart, note: data.note,
-        severity: data.severity, createdAt: new Date(),
-      };
-      setSymptoms(prev => [optimistic, ...prev]);
-    }
+  } else {
+  const optimistic: Symptom = {
+    id: Date.now(), orgId, patientId: patient.id,
+    bodyPart: data.bodyPart, note: data.note,
+    severity: data.severity, createdAt: new Date(),
+  };
+  setSymptoms(prev => [optimistic, ...prev]);
+
+  // replace fake id with real DB id
+  const fresh = await getSymptomsForPatient(orgId, patient.id);
+  setSymptoms(fresh);
+}
   }
 
   function handleDeleteSymptom(id: number) {
@@ -116,7 +121,7 @@ export function DashboardClient({
 
         {activeTab === "body" ? (
           <div className="flex-1 relative min-h-0">
-            <BodyViewer onPartClick={setSelectedPart} activePartIds={activePartIds} />
+            <BodyViewer onPartClick={setSelectedPart} activePartIds={activePartIds}   activePartIdsKey={activePartIdsKey}/>
             {/* Mobile symptom log button */}
             <button
               onClick={() => setShowSymptomLog(true)}
@@ -232,6 +237,7 @@ export function DashboardClient({
 
       {/* ── MODAL ── */}
       <SymptomModal
+        key={selectedPart?.id}
         part={selectedPart}
         orgId={orgId}
         patientId={patient.id}

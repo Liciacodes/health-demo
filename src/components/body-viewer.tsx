@@ -30,9 +30,10 @@ const COLOR_ACTIVE = "#e53935";
 type BodyViewerProps = {
   onPartClick:     (part: BodyPart) => void;
   activePartIds:   string[];  
+   activePartIdsKey: string;
 };
 
-export function BodyViewer({ onPartClick, activePartIds }: BodyViewerProps) {
+export function BodyViewer({ onPartClick, activePartIds, activePartIdsKey }: BodyViewerProps) {
   const mountRef   = useRef<HTMLDivElement>(null);
   const meshMapRef = useRef<Record<string, THREE.Mesh>>({});
   const hoveredRef = useRef<THREE.Mesh | null>(null);
@@ -175,14 +176,13 @@ export function BodyViewer({ onPartClick, activePartIds }: BodyViewerProps) {
     };
   }, []);
 
-  // Recolor meshes when symptoms change
-  useEffect(() => {
-    Object.entries(meshMapRef.current).forEach(([id, mesh]) => {
-      (mesh.material as THREE.MeshStandardMaterial).color.set(
-        activePartIds.includes(id) ? COLOR_ACTIVE : COLOR_NORMAL
-      );
-    });
-  }, [activePartIds]);
+useEffect(() => {
+  Object.entries(meshMapRef.current).forEach(([id, mesh]) => {
+    (mesh.material as THREE.MeshStandardMaterial).color.set(
+      activePartIds.includes(id) ? COLOR_ACTIVE : COLOR_NORMAL
+    );
+  });
+}, [activePartIdsKey]);
 
   return <div ref={mountRef} className="w-full h-full rounded-xl" />;
 }

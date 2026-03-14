@@ -17,7 +17,7 @@ type Props = {
 };
 
 export function SymptomModal({ part, orgId, patientId, onSave, onClose, existingSymptoms }: Props) {
-  const existing = existingSymptoms.find(s => s.bodyPart === part?.id && s.id < 2000000000);
+const existing = existingSymptoms.find(s => s.bodyPart === part?.id);
   const [note, setNote]         = useState(existing?.note ?? "");
   const [severity, setSeverity] = useState(existing?.severity ?? 1);
   const [loading, setLoading]   = useState(false);
